@@ -38,6 +38,9 @@ struct item {
 static char text[BUFSIZ] = "";
 static int bh, mw, mh;
 static int sw, sh; /* X display screen geometry width, height */
+static int dmx = 0; /* put dmenu at this x offset */
+static int dmy = 0; /* put dmenu at this y offset (measured from the bottom if topbar is 0) */
+static unsigned int dmw = 0; /* make dmenu this wide */
 static int inputw, promptw;
 static size_t cursor;
 static struct item *items = NULL;
@@ -142,7 +145,7 @@ drawmenu(void)
 
   if (lines > 0) {
     /* draw vertical list */
-    w = mw - x;
+    /* w = mw - x; */
     for (item = curr; item != next; item = item->right) {
       y += h;
       if (item == sel)
@@ -152,7 +155,8 @@ drawmenu(void)
       else
         drw_setscheme(drw, &scheme[SchemeNorm]);
 
-      drw_text(drw, x, y, w, bh, item->text, 0);
+      /* drw_text(drw, x, y, w, bh, item->text, 0); */
+      drw_text(drw, 0, y, w, bh, item->text, 0);
     }
   } else if (matches) {
     /* draw horizontal list */
@@ -653,16 +657,16 @@ setup(void)
         if (INTERSECT(x, y, 1, 1, info[i]))
           break;
 
-    x = info[i].x_org;
-    y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
-    mw = info[i].width;
+    x = info[i].x_org + dmx;
+    y = info[i].y_org + (topbar ? dmy : info[i].height - mh - dmy);
+    mw = (dmw>0 ? dmw : info[i].width);
     XFree(info);
   } else
 #endif
     {
-      x = 0;
-      y = topbar ? 0 : sh - mh;
-      mw = sw;
+      x = dmx;
+      y = topbar ? dmy : sh - mh - dmy;
+      mw = (dmw>0 ? dmw : sw);
     }
   promptw = (prompt && *prompt) ? TEXTW(prompt) : 0;
   inputw = MIN(inputw, mw/3);
@@ -691,6 +695,7 @@ static void
 usage(void)
 {
   fputs("usage: dmenu [-b] [-f] [-i] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+        "             [-x xoffset] [-y yoffset] [-w width]\n"
         "             [-nb color] [-nf color] [-sb color] [-sf color] [-v]\n", stderr);
   exit(1);
 }
@@ -717,6 +722,12 @@ main(int argc, char *argv[])
   /* these options take one argument */
     else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
       lines = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "-x"))   /* window x offset */
+      dmx = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "-y"))   /* window y offset (from bottom up if -b) */
+      dmy = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "-w"))   /* make dmenu this wide */
+      dmw = atoi(argv[++i]);
     else if (!strcmp(argv[i], "-m"))
       mon = atoi(argv[++i]);
     else if (!strcmp(argv[i], "-p"))   /* adds prompt to left of input field */
